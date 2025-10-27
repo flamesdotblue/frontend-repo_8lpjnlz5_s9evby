@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import Header from "./components/Header";
 import Filters from "./components/Filters";
 import Recommendations from "./components/Recommendations";
@@ -17,35 +17,38 @@ function App() {
   const API = import.meta.env.VITE_BACKEND_URL || "";
   const baseUrl = API || `${window.location.protocol}//${window.location.hostname}:8000`;
 
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const [r1, r2] = await Promise.all([
+        fetch(`${baseUrl}/api/recommendations`),
+        fetch(`${baseUrl}/api/news`),
+      ]);
+      if (!r1.ok || !r2.ok) throw new Error("Failed to load data");
+      const [recs, headlines] = await Promise.all([r1.json(), r2.json()]);
+      setIdeas(recs || []);
+      setNews(headlines || []);
+    } catch (e) {
+      setError("Unable to fetch the latest pre-market data right now.");
+    } finally {
+      setLoading(false);
+    }
+  }, [baseUrl]);
+
   useEffect(() => {
     let cancelled = false;
-    async function loadData() {
-      setLoading(true);
-      setError("");
+    (async () => {
       try {
-        const [r1, r2] = await Promise.all([
-          fetch(`${baseUrl}/api/recommendations`),
-          fetch(`${baseUrl}/api/news`),
-        ]);
-        if (!r1.ok || !r2.ok) throw new Error("Failed to load data");
-        const [recs, headlines] = await Promise.all([r1.json(), r2.json()]);
-        if (!cancelled) {
-          setIdeas(recs || []);
-          setNews(headlines || []);
-        }
-      } catch (e) {
-        if (!cancelled) {
-          setError("Unable to fetch the latest pre-market data right now.");
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
+        await fetchData();
+      } catch {
+        // handled in fetchData
       }
-    }
-    loadData();
+    })();
     return () => {
-      cancelled = true;
+      cancelled = true; // reserved if we add abort controllers later
     };
-  }, [baseUrl]);
+  }, [fetchData]);
 
   const filtered = useMemo(() => {
     return ideas.filter((i) => {
@@ -98,7 +101,7 @@ function App() {
           </section>
         ) : (
           <>
-            <Recommendations items={filtered} />
+            <Recommendations items={filtered} news={news} onRefresh={fetchData} />
             <NewsFeed items={news} />
           </>
         )}
