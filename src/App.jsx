@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import Header from "./components/Header";
 import Filters from "./components/Filters";
 import Recommendations from "./components/Recommendations";
-import NewsFeed from "./components/NewsFeed";
+import TechnicalAnalyzer from "./components/TechnicalAnalyzer";
 
 function App() {
   const [sector, setSector] = useState("All");
@@ -102,7 +102,7 @@ function App() {
         ) : (
           <>
             <Recommendations items={filtered} news={news} onRefresh={fetchData} />
-            <NewsFeed items={news} />
+            <TechnicalAnalyzer />
           </>
         )}
 
